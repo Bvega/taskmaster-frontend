@@ -1,22 +1,28 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import TaskList from './components/TaskList';
 import './App.css';
+
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
 function App() {
   const [tasks, setTasks] = useState([]);
 
-  // Fetch tasks from the backend
   useEffect(() => {
-    fetch('/api/tasks')
-      .then(res => res.json())
-      .then(data => setTasks(data))
-      .catch(err => console.error('Error fetching tasks:', err));
+    fetch(`${API_BASE_URL}/api/tasks`)
+      .then((res) => {
+        if (!res.ok) throw new Error(`API error: ${res.status}`);
+        return res.json();
+      })
+      .then((data) => setTasks(data))
+      .catch((err) => console.error('Error fetching tasks:', err));
   }, []);
 
   return (
-    <div className="App">
-      <h1 className="text-2xl font-bold my-4">TaskMaster</h1>
-      <TaskList tasks={tasks} />
+    <div className="container">
+      <div className="card">
+        <h1>TaskMaster</h1>
+        <TaskList tasks={tasks} />
+      </div>
     </div>
   );
 }
