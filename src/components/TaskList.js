@@ -1,22 +1,27 @@
 import React from 'react';
 
+const API_BASE = process.env.REACT_APP_API_BASE_URL || '';
+
 const TaskList = ({ tasks, updateTasks }) => {
   const clickDeleteTask = (event, task) => {
     event.preventDefault();
 
-    fetch(`/api/tasks/delete/${task._id}`, {
+    fetch(`${API_BASE}/api/tasks/delete/${task._id}`, {
       method: 'delete',
     })
       .then(res => res.json())
-      .then(() => updateTasks());
+      .then(() => updateTasks())
+      .catch(err => console.error('Error deleting task:', err));
   };
 
   const toggleDone = task => {
-    fetch(`/api/tasks/update/${task._id}`, {
+    fetch(`${API_BASE}/api/tasks/update/${task._id}`, {
       method: 'post',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ done: !task.done }),
-    }).then(() => updateTasks());
+    })
+      .then(() => updateTasks())
+      .catch(err => console.error('Error updating task:', err));
   };
 
   return (
@@ -26,7 +31,7 @@ const TaskList = ({ tasks, updateTasks }) => {
           <label className={task.done ? 'done' : ''}>
             <input
               type="checkbox"
-              checked={task.done}
+              checked={task.done || false}
               onChange={() => toggleDone(task)}
             />{' '}
             {task.title}
