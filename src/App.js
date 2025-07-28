@@ -1,61 +1,103 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import './App.css';
-import TasksList from './components/TaskList';
 
-// Use environment variable in production, proxy in development
-const API_BASE = process.env.REACT_APP_API_BASE_URL || '';
+const API_BASE = 'http://localhost:5000';
 
-const App = () => {
+function App() {
   const [tasks, setTasks] = useState([]);
-  const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [newTaskText, setNewTaskText] = useState('');
 
-  const getTasks = useCallback(() => {
-    fetch(`${API_BASE}/api/tasks`)
-      .then(res => res.json())
-      .then(setTasks)
-      .catch(err => console.error('Error fetching tasks:', err));
+  // Load tasks on mount
+  useEffect(() => {
+    fetchTasks();
   }, []);
 
-  useEffect(() => {
-    getTasks();
-  }, [getTasks]);
-
-  const clickAddTask = event => {
-    event.preventDefault();
-
-    if (!newTaskTitle.trim()) {
-      alert('Please enter a task title');
-      return;
+  const fetchTasks = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/tasks`);
+      const data = await res.json();
+      setTasks(data);
+    } catch (error) {
+      console.error('Error fetching tasks:', error);
     }
+  };
 
-    fetch(`${API_BASE}/api/tasks/add`, {
-      method: 'post',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: newTaskTitle }),
-    }).then(() => {
-      setNewTaskTitle('');
-      getTasks();
-    });
+  const handleAddTask = async () => {
+    if (!newTaskText.trim()) return;
+
+    try {
+      const res = await fetch(`${API_BASE}/api/tasks/add`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text: newTaskText }),
+      });
+
+      if (!res.ok) throw new Error('Failed to add task');
+      setNewTaskText('');
+      fetchTasks();
+    } catch (error) {
+      console.error('Error adding task:', error);
+    }
+  };
+
+  const handleDeleteTask = async (id) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/tasks/${id}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) throw new Error('Failed to delete task');
+      fetchTasks();
+    } catch (error) {
+      console.error('Error deleting task:', error);
+    }
+  };
+
+  const handleToggleComplete = async (id, completed) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/tasks/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ completed: !completed }),
+      });
+      if (!res.ok) throw new Error('Failed to update task');
+      fetchTasks();
+    } catch (error) {
+      console.error('Error updating task:', error);
+    }
   };
 
   return (
     <div className="App">
-      <h1>TaskMaster</h1>
+      <div className="task-container">
+        <h1>TaskMaster</h1>
+        <div className="add-task">
+          <input
+            type="text"
+            placeholder="New Task"
+            value={newTaskText}
+            onChange={(e) => setNewTaskText(e.target.value)}
+          />
+          <button onClick={handleAddTask}>Add</button>
+        </div>
 
-      <TasksList tasks={tasks} updateTasks={getTasks} />
-
-      <form onSubmit={clickAddTask}>
-        <input
-          type="text"
-          size="30"
-          placeholder="New Task"
-          value={newTaskTitle}
-          onChange={event => setNewTaskTitle(event.target.value)}
-        />
-        <input className="btn-primary" type="submit" value="Add" />
-      </form>
+        {tasks.map((task) => (
+          <div key={task._id} className="task-item">
+            <input
+              type="checkbox"
+              checked={task.completed}
+              onChange={() => handleToggleComplete(task._id, task.completed)}
+            />
+            <span className={task.completed ? 'completed' : ''}>{task.text}</span>
+            <button onClick={() => handleDeleteTask(task._id)}>❌</button>
+          </div>
+        ))}
+      </div>
     </div>
   );
-};
+}
 
 export default App;
